@@ -2,10 +2,20 @@
 
 Predict results of a bank telemarketing campaign 
 
+## Motivation
+
+Predictive models can help a business invest their marketing time and effort to maximize their return on 
+investment. This project will analyze the results of a bank telemarketing campaign to see 
+if telephone sales resources could be applied in a more effective fashion.
+
+## Data
+
 The bank marketing dataset from the UCI dataset repository contains approximately 
 41000 telemarketing records with customer information, telemarketing contacts, and economic context for a total of 20 predictors versus a categorical outcome variable (subscribed to a term deposit or not). The data is from a Portuguese bank and was collected between May, 2008 and November, 2010. 
 
 https://archive.ics.uci.edu/ml/datasets/Bank+Marketing
+
+[Moro et al., 2014] S. Moro, P. Cortez and P. Rita. A Data-Driven Approach to Predict the Success of Bank Telemarketing. Decision Support Systems, Elsevier, 62:22-31, June 2014
 
 
 ## Target value 
