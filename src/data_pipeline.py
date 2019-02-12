@@ -19,6 +19,8 @@ import warnings
 from sklearn import exceptions
 warnings.filterwarnings("ignore", category=exceptions.DataConversionWarning)
 
+from pdb import set_trace as BREAKPOINT
+
 def sort_columns_by_type(columns):
     """
     sort_columns_by_type(columns):
@@ -70,11 +72,13 @@ def sort_columns_by_type(columns):
     
     for co in columns:
         if co in numerical_cols:
-            selected_numerical += [co]
+            selected_numerical += [co]     
+        elif co in power_cols:
+            selected_power += [co]           
         elif co in categorical_cols:
             selected_categorical += [co]
-        elif co in power_cols:
-            selected_power += [co]
+        elif test:
+            pass
         elif co not in ignore_cols: 
             raise Exception('Unknown column', co)
             
@@ -202,6 +206,10 @@ def run_a_model(model_name, model, columns, strategy, param_candidates):
         best_params = grid.best_params_
         all_cv      = grid.cv_results_
     
+    
+    # -- remove the resample from the steps for final testing
+    best_model = imb_make_pipeline(best_model.steps[-2][1], best_model.steps[-1][1])
+    
     y_predict = best_model.predict(X_train)
     
     # -- calculate all the stats -- #
@@ -215,6 +223,32 @@ def run_a_model(model_name, model, columns, strategy, param_candidates):
     fpr, tpr, thresholds = metrics.roc_curve(y_train, probs.loc[:,1])
                                            
     auc = metrics.auc(fpr, tpr)
+    
+    # -- and again for the holdout set -- #
+    y_holdout = best_model.predict(X_test)
+    
+    test_accuracy  = metrics.accuracy_score(y_test, y_holdout)
+    test_recall    = metrics.recall_score(y_test, y_holdout)
+    test_precision = metrics.precision_score(y_test, y_holdout)
+    test_f1        = metrics.f1_score(y_test, y_holdout)
+    test_cm        = metrics.confusion_matrix(y_test, y_holdout)
+    
+    test_probs = pd.DataFrame(best_model.predict_proba(X_test))
+    test_fpr, test_tpr, test_thresholds = metrics.roc_curve(y_test, test_probs.loc[:,1])
+                                           
+    test_auc = metrics.auc(test_fpr, test_tpr)
+    
+    holdout = dict(accuracy=test_accuracy, 
+                   recall=test_recall,
+                   precision=test_precision,
+                   f1=test_f1,
+                   cm=test_cm,
+                   probs=test_probs,
+                   fpr=test_fpr,
+                   tpr=test_tpr,
+                   thresholds=test_thresholds,
+                   auc=test_auc)
+        
     
     # -- 
     # get final column names after one hot encoding for
@@ -242,9 +276,17 @@ def run_a_model(model_name, model, columns, strategy, param_candidates):
                     f1=f1,
                     auc=auc, 
                     cm=cm,
-                    all_cv=all_cv)                                         
+                    all_cv=all_cv,
+                    holdout=holdout)                                         
                                        
     return measures
     
     
-
+    
+        
+        
+        
+    
+    
+    
+    
