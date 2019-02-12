@@ -12,6 +12,9 @@ from sklearn.model_selection import train_test_split, cross_validate
 from sklearn.model_selection import GridSearchCV
 from sklearn import metrics
 
+# I've been all over this in the debugger and combining SMOTENC and 
+# ColumnTransformer seems to lose some type information, but it really
+# is the float columns that are being passed to StandardScaler
 import warnings
 from sklearn import exceptions
 warnings.filterwarnings("ignore", category=exceptions.DataConversionWarning)
@@ -82,28 +85,31 @@ def sort_columns_by_type(columns):
 
 def read_data(columns):   
     # -- Read the data -- # 
-    database = "postgresql://localhost/bankcalls"   
-    sql  = "SELECT " + ", ".join(columns) + " FROM bank_addl;"
+    database = "postgresql://localhost/bankcalls" 
+    sql_test  = "SELECT " + ", ".join(columns) + " FROM test_view;"
+    sql_train = "SELECT " + ", ".join(columns) + " FROM train_view;"
     
-    df =  pd.read_sql(sql, database, index_col='bank_addl_id')
+    df_test =  pd.read_sql(sql_test, database, index_col='bank_addl_id')
+    df_train = pd.read_sql(sql_train, database, index_col='bank_addl_id')
     
     # -- Set success column to 0/1 and separate X's and y's -- #      
-    y = df['success'].replace({'yes':1, 'no':0})   
-    X = df.drop(columns='success')
-   
+    y_test = df_test['success'].replace({'yes':1, 'no':0})
+    y_train = df_train['success'].replace({'yes':1, 'no':0})
+
+    X_test = df_test.drop(columns='success')
+    X_train = df_train.drop(columns='success')
+    
     # --
     # organize columns by type for ColumnTransformer convenience
     # categoricals last: making dummies adds columns and if they're all 
     # on the end the numerical columns don't move to new indices
     
-    cats, nums, pows = sort_columns_by_type(X.columns)
-    X = pd.concat([X[nums], X[pows], X[cats]], axis=1)
-    X[cats] = X[cats].astype('category')
-    
-    X_train, X_test, y_train, y_test = train_test_split(X, y, 
-                                                        test_size=0.2, 
-                                                        stratify=y, 
-                                                        random_state=3)
+    cats, nums, pows = sort_columns_by_type(X_train.columns)
+    X_train = pd.concat([X_train[nums], X_train[pows], X_train[cats]], axis=1)
+    X_test =  pd.concat([X_test[nums], X_test[pows], X_test[cats]], axis=1)
+
+    X_train[cats] = X_train[cats].astype('category')
+    X_test[cats] = X_test[cats].astype('category')
     
     return X_train, X_test, y_train, y_test
         
@@ -145,8 +151,10 @@ def run_a_model(model_name, model, columns, strategy, param_candidates):
     
     col_xform = ColumnTransformer(transformers)
     
-    # -- resampling needs to be added to the model with the 
-    # -- imblearn version of make_pipeline
+    # -- 
+    # resampling needs to be added to the model with the 
+    # imblearn version of make_pipeline
+    # -- 
     if strategy == "ros":
         ros = RandomOverSampler(random_state=123)
         pipeline_model = imb_make_pipeline(ros, col_xform, model)
@@ -171,15 +179,16 @@ def run_a_model(model_name, model, columns, strategy, param_candidates):
     if param_candidates == None:
         
         scores = cross_validate(pipeline_model, X_train, y_train, 
-                   scoring='f1', cv=4,
-                    return_estimator=True,
-                    return_train_score=False)
+                               scoring='f1', 
+                               cv=4,
+                               n_jobs=-1,
+                               return_estimator=True,
+                               return_train_score=False)
     
-        # -- Best score from cross_validate results
         best = np.argmax(scores['test_score'])
-        best_model = scores['estimator'][best]
+        best_model  = scores['estimator'][best]
         best_params = None
-        
+        all_cv = scores
     else:
         grid = GridSearchCV(pipeline_model, param_candidates,
                             scoring='f1',
@@ -188,8 +197,10 @@ def run_a_model(model_name, model, columns, strategy, param_candidates):
                             iid=False, 
                             return_train_score=False)
         grid.fit(X_train, y_train)
-        best_model = grid.best_estimator_
+        
+        best_model  = grid.best_estimator_
         best_params = grid.best_params_
+        all_cv      = grid.cv_results_
     
     y_predict = best_model.predict(X_train)
     
@@ -205,7 +216,10 @@ def run_a_model(model_name, model, columns, strategy, param_candidates):
                                            
     auc = metrics.auc(fpr, tpr)
     
-    # -- get final column names after one hot encoding -- #
+    # -- 
+    # get final column names after one hot encoding for
+    # understanding logistic regression results 
+    # -- 
     columns = X_cols
     if len(categorical) > 0:
         fake_cols = []
@@ -227,7 +241,8 @@ def run_a_model(model_name, model, columns, strategy, param_candidates):
                     precision=precision, 
                     f1=f1,
                     auc=auc, 
-                    cm=cm)                                         
+                    cm=cm,
+                    all_cv=all_cv)                                         
                                        
     return measures
     
