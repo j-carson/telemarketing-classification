@@ -6,7 +6,8 @@ Predict results of a bank telemarketing campaign
 
 ### Need for study
 By performing fewer and more effective telemarketing phone calls, businesses
-save money, and people who are not interested in the product offering are less likely to receive an annoying phone call.
+increase sales, save expenses, and avoid bothering customers who do not 
+need to be called.
 
 ### Data
 The bank marketing dataset from the UCI dataset repository contains approximately 
@@ -17,7 +18,7 @@ The bank marketing dataset from the UCI dataset repository contains approximatel
 ## Exploratory Data Analysis
 
 ### The target 
-The target feature is whether or not the phone call was successful, and the customer subscribed to the term deposit.
+The target feature is whether or not the phone call was successful in getting the customer to subscribe to a term deposit.
 
 The dataset is unbalanced. For the time period in question, the telemarketing department had an overall 11 percent success rate.
 
@@ -28,14 +29,14 @@ the following categories:
 
 - Bank client data
 
-Information about the clients has been anonymized, so this information is categorical.`For example, whether there is a loan, not how much the loan is for. 
+Information about the clients has been anonymized, so this information is categorical. For example, a column indicates whether there is a loan, but not how much the loan is for. 
 
-There were no features that were obvious strong predictors for
-the overall dataset, however there were some small subsets 
+During exploratory analysis, none of these columns were
+obvious strong predictors, however there were some small subsets 
 of 
 customers that seemed to be likely prospects. For example, in the customer job category, students and retired customers were more likely to purchase than the general population. However, these were less than 5 percent of the population each. 
 
-The most promising customer categories were: certain values for: job, education, and whether the bank had a cell phone number for the customer versus a land line.
+The somewhat promising customer categories were: certain values for job and education, and whether the bank had a cell phone number for the customer versus a land line.
 
 - Telemarketing contact fields
 
@@ -47,9 +48,10 @@ possible. In addition, there is no customer id field. If the same customer was
 contacted in 2008, 2009, and 2010 there is no way to match up the records.
 
 The most promising field here was month. Demand for term
-deposits in Portugal appears to be strongest in March and December. However, no rows are tagged January or February and the greatest number of calls are in April. The sample size
+deposits in Portugal appears to be strongest in March and December. However, no rows are tagged January or February, and the greatest number of calls are in April. The sample size
 for each month are very inconsistent. September had the third highest conversion rate, but the smallest number of phone calls.
-Survey irregularity may be affecting the quality of this
+Survey irregularity (or perhaps the sporadic nature of the telemarketing
+campaigns?) may be affecting the quality of month as a 
 predictor.
 
 
@@ -91,7 +93,7 @@ the call before it is made.
 The pdays count was also dropped from the feature
 set. The pdays feature measures how many days elapsed since
 the previous campaign in which the customer
-was included. 39,700 of the 41188 rows were 999 (for no information or not included). 
+was included. 39,700 of the 41188 rows were 999 (for no information). 
 Trying to impute a numerical field with so much
 missing data was not reasonable.  The poutcome categorical column
 gave information about whether the previous campaign
@@ -141,8 +143,6 @@ I worked with the ```sklearn GraidentBoostingClassifier``` and the ```RandomFore
 classifiers out there, but with my limited time I focused on the ```sklearn``` package where it was easy to swap different
 model objects in and out. 
 
-For this particular data set, I was able to get similar results from 
-all three models. 
 
 ### Choosing metrics
 
@@ -155,7 +155,6 @@ employees would be phoning all of the customers labeled as likely to
 buy, it was also important
 that the final call list have as high of a ratio of true positives to 
 false positives as possible.
-
 
 
 ## Tools
@@ -190,15 +189,12 @@ current market conditions.
 - The use of additional, lower quality features in a model can be a waste of time. I could throw in additional features to my random forest models without getting better model results. Since models with fewer columns are less complex and can run faster, exploratory data analysis can save time. 
 
 - The use of SMOTENC versus RandomOverSampling
-was a wash for this data set. I did notice some differences in that
-the SMOTE models were less likely to overfit, but the same model with
-different oversampling methods tended to do about the same with the 
-holdout data even if the results on the training data indicated more
-of a difference.
+was not a major factor in the performance of the models. SMOTE is a much
+slower oversampling method, and was probably not worth it in this case.
 
 - The data was heavily edited to redact both personal customer
-and bank competitive information, and to reflect the choices of 
-the author of the original study, and my analysis probably
+and bank competitive information and to reflect the choices of 
+the author of the original study. My analysis probably
 suffers from some garbage-in, garbage-out. A dataset that
 was created by actual banking data science department may find more useful predictors in their customer data.
 
